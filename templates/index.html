@@ -1,0 +1,136 @@
+﻿<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Générateur de Plan A3</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700&family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f4f7f6;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            width: 100%;
+            max-width: 500px;
+        }
+        h1 {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 24px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .drop-zone {
+            border: 2px dashed #007bff;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: background 0.3s;
+            margin-bottom: 20px;
+        }
+        .drop-zone.dragover { background: #e9f5ff; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: 600; }
+        input[type="number"] {
+            width: 100%; padding: 10px; border: 1px solid #ddd;
+            border-radius: 6px; font-family: 'Poppins', sans-serif;
+        }
+        button {
+            width: 100%; padding: 12px; background: #007bff; color: white;
+            border: none; border-radius: 6px; font-weight: 600; cursor: pointer;
+            font-family: 'Poppins', sans-serif; transition: background 0.3s;
+        }
+        button:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Mise à l'échelle A3</h1>
+    <form id="uploadForm">
+        <div class="drop-zone" id="dropZone">
+            Glissez-déposez votre plan ici ou cliquez pour parcourir
+            <input type="file" id="fileInput" name="file" accept="image/*" style="display: none;">
+        </div>
+        
+        <div class="form-group">
+            <label>Largeur réelle (mètres)</label>
+            <input type="number" name="largeur" value="9.0" step="0.1" required>
+        </div>
+        <div class="form-group">
+            <label>Échelle (ex: 50 pour 1/50è)</label>
+            <input type="number" name="echelle" value="50" required>
+        </div>
+        
+        <button type="submit" id="submitBtn">Générer le PDF</button>
+    </form>
+</div>
+
+<script>
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const form = document.getElementById('uploadForm');
+    const submitBtn = document.getElementById('submitBtn');
+    let selectedFile = null;
+
+    dropZone.addEventListener('click', () => fileInput.click());
+    
+    fileInput.addEventListener('change', (e) => {
+        selectedFile = e.target.files[0];
+        dropZone.textContent = selectedFile.name;
+    });
+
+    dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault(); dropZone.classList.add('dragover');
+    });
+
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault(); dropZone.classList.remove('dragover');
+        selectedFile = e.dataTransfer.files[0];
+        dropZone.textContent = selectedFile.name;
+    });
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!selectedFile) return alert('Veuillez sélectionner un fichier.');
+
+        submitBtn.textContent = 'Génération en cours...';
+        submitBtn.disabled = true;
+
+        const formData = new FormData(form);
+        formData.set('file', selectedFile);
+
+        try {
+            const response = await fetch('/upload', { method: 'POST', body: formData });
+            if (!response.ok) throw new Error('Erreur serveur');
+            
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = "Plan_A3.pdf";
+            a.click();
+            window.URL.revokeObjectURL(url);
+        } catch (err) {
+            alert(err.message);
+        } finally {
+            submitBtn.textContent = 'Générer le PDF';
+            submitBtn.disabled = false;
+        }
+    });
+</script>
+</body>
+</html>
