@@ -161,36 +161,41 @@
         });
     }
 
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        if (selectedFiles.length === 0) return alert('Veuillez sélectionner au moins un fichier.');
+form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (selectedFiles.length === 0) return alert('Veuillez sélectionner au moins un fichier.');
 
-        submitBtn.textContent = 'Traitement en cours...';
-        submitBtn.style.opacity = '0.5';
-        submitBtn.disabled = true;
+    submitBtn.textContent = 'Traitement en cours...';
+    submitBtn.style.opacity = '0.5';
+    submitBtn.disabled = true;
 
-        const formData = new FormData(form);
-        // Les fichiers sont déjà liés via l'input form, mais on s'assure qu'ils sont bien passés
-        
-        try {
-            const response = await fetch('/upload_batch', { method: 'POST', body: formData });
-            if (!response.ok) throw new Error('Erreur serveur');
-            
-            const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = "Plans_Architecture_Batch.zip";
-            a.click();
-            window.URL.revokeObjectURL(url);
-        } catch (err) {
-            alert(err.message);
-        } finally {
-            submitBtn.textContent = 'Générer l\'archive ZIP';
-            submitBtn.style.opacity = '1';
-            submitBtn.disabled = false;
-        }
+    const formData = new FormData(form);
+    
+    // CORRECTION : On vide l'input par défaut et on injecte manuellement les fichiers en mémoire
+    formData.delete('files[]');
+    selectedFiles.forEach(file => {
+        formData.append('files[]', file);
     });
+
+    try {
+        const response = await fetch('/upload_batch', { method: 'POST', body: formData });
+        if (!response.ok) throw new Error('Erreur serveur durant le traitement des images.');
+        
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = "Plans_Architecture_Batch.zip";
+        a.click();
+        window.URL.revokeObjectURL(url);
+    } catch (err) {
+        alert(err.message);
+    } finally {
+        submitBtn.textContent = 'Générer l\'archive ZIP';
+        submitBtn.style.opacity = '1';
+        submitBtn.disabled = false;
+    }
+});
 </script>
 </body>
 </html>
